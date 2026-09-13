@@ -1,4 +1,5 @@
-const localPath = "./data/monsters.json";
+const path = require("path");
+const localPath = path.join(__dirname, "../data/monsters.json");
 const DL = require("../DLs/jsonFileDl.js");
 
 const getAllMonsters = async () => {

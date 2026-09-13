@@ -28,6 +28,12 @@ router.post("/", async (req, res) => {
   res.status(201).json({ message: result });
 });
 
+// Delete the whole encounter
+router.delete("/", async (req, res) => {
+  const result = await BL.deleteAllMonsters();
+  res.json({ message: result });
+});
+
 // Update an existing monster
 router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id);

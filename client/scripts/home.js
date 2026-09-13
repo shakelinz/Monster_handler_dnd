@@ -12,7 +12,14 @@ searchInput.addEventListener("input", async function () {
   let originMonsters = await fetch("http://127.0.0.1:3000/api/monsters/").then(
     (response) => response.json()
   );
-  let monsterNames = originMonsters.map((monster) => monster.name);
+
+  // FIX: Fallback to an object property if it's nested (e.g., originMonsters.monsters), or use an empty array if undefined
+  const monstersArray = Array.isArray(originMonsters)
+    ? originMonsters
+    : (originMonsters.monsters || Object.values(originMonsters));
+
+  let monsterNames = monstersArray.map((monster) => monster.name);
+
   const filteredSuggestions = monsterNames.filter((item) =>
     item.toLowerCase().startsWith(query)
   );
@@ -62,11 +69,11 @@ addMonsterBtn.addEventListener("click", async function () {
     let encounterMonsters = await fetch(
       "http://127.0.0.1:3000/api/encounter/"
     ).then((response) => response.json());
-    let lastMonster = encounterMonsters.findLast(currMonster=>currMonster.name.includes(monster.name));
+    let lastMonster = encounterMonsters.findLast(currMonster => currMonster.name.includes(monster.name));
     let counter = 0;
-    if(lastMonster){
+    if (lastMonster) {
       counter = parseInt(lastMonster.name.slice(monster.name.length));
-      counter ++;
+      counter++;
     }
     for (let i = 0; i < monsterNum; i++) {
       // Clone the monster object to avoid modifying the original
@@ -83,16 +90,30 @@ addMonsterBtn.addEventListener("click", async function () {
       });
       counter++;
     }
+    location.reload();
   }
 });
 
 // Display monsters in cards
 let monsterCardsContainer = document.getElementById("monster-cards"); // Clear existing content
-let monsters = await fetch("http://127.0.0.1:3000/api/encounter/").then(
-  (response) => response.json()
-);
-monsters.forEach((monster) => {
+let monstersData = await fetch("http://127.0.0.1:3000/api/encounter/")
+  .then(async (response) => {
+    const data = await response.json();
+    if (!response.ok || !Array.isArray(data)) {
+      throw new Error(typeof data === "string" ? data : "Invalid encounter response");
+    }
+    return data;
+  })
+  .catch((error) => {
+    console.error("Error fetching encounter:", error);
+    return [];
+  });
+
+const monstersArray = monstersData;
+
+monstersArray.forEach((monster) => {
   let monsterCard = document.createElement("div");
+
   monsterCard.className = "col-md-2 mb-4";
   monsterCard.style.borderRadius = "8px"; // Rounded corners
   //   green border for monsters with HP > 0, red for those with HP <= 0
@@ -138,6 +159,7 @@ monsters.forEach((monster) => {
     await fetch(`http://127.0.0.1:3000/api/encounter/${monsterId}`, {
       method: "DELETE",
     });
+    monsterCard.remove();
   });
 });
 
@@ -309,115 +331,92 @@ monsterModal.addEventListener("show.bs.modal", async function (event) {
   modalTitle.textContent = `Details for ${monster.name}`;
   modalBody.innerHTML = `
     <label for="monsterName">Monster Name:</label>
-    <input id="monsterName" type="text" class="form-control mb-2" value="${
-      monster.name
+    <input id="monsterName" type="text" class="form-control mb-2" value="${monster.name
     }" placeholder="Monster Name">
     <label for="monsterMaxHP">Max HP:</label>
-    <input id="monsterMaxHP" type="number" class="form-control mb-2" value="${
-      monster.hp
+    <input id="monsterMaxHP" type="number" class="form-control mb-2" value="${monster.hp
     }" placeholder="Max HP">
     <label for="monsterAC">Armor Class:</label>
-    <input id="monsterAC" type="number" class="form-control mb-2" value="${
-      monster.ac
+    <input id="monsterAC" type="number" class="form-control mb-2" value="${monster.ac
     }" placeholder="Armor Class">
     <label for="monsterCurrentHP">Current HP:</label>
-    <input id="monsterCurrentHP" type="number" class="form-control mb-2" value="${
-      monster.currentHP
+    <input id="monsterCurrentHP" type="number" class="form-control mb-2" value="${monster.currentHP
     }" placeholder="Current HP">
     <label for="monsterType">Type:</label>
-    <input id="monsterType" type="text" class="form-control mb-2" value="${
-      monster.type
+    <input id="monsterType" type="text" class="form-control mb-2" value="${monster.type
     }" placeholder="Type">
     <label for="monsterSize">Size:</label>
-    <input id="monsterSize" type="text" class="form-control mb-2" value="${
-      monster.size
+    <input id="monsterSize" type="text" class="form-control mb-2" value="${monster.size
     }" placeholder="Size">
     <label for="monsterCr">Challenge Rating:</label>
-    <input id="monsterCr" type="text" class="form-control mb-2" value="${
-      monster.cr
+    <input id="monsterCr" type="text" class="form-control mb-2" value="${monster.cr
     }" placeholder="Challenge Rating">
     <label for="monsterAlignment">Alignment:</label>
-    <input id="monsterAlignment" type="text" class="form-control mb-2" value="${
-      monster.alignment
+    <input id="monsterAlignment" type="text" class="form-control mb-2" value="${monster.alignment
     }" placeholder="Alignment">
     <label for="monsterSpeed">Speed:</label>
-    <input id="monsterSpeed" type="text" class="form-control mb-2" value="${
-      monster.speed
+    <input id="monsterSpeed" type="text" class="form-control mb-2" value="${monster.speed
     }" placeholder="Speed">
     <label for="monsterStats">Stats:</label>
     <input id="monsterStats" type="text" class="form-control mb-2" value='${JSON.stringify(
       monster.stats
     )}' placeholder='Stats'>
     <label for='monsterSavingThrows'>Saving Throws:</label>
-    <input id='monsterSavingThrows' type='text' class='form-control mb-2' value='${
-      monster.savingThrows ? JSON.stringify(monster.savingThrows) : ""
+    <input id='monsterSavingThrows' type='text' class='form-control mb-2' value='${monster.savingThrows ? JSON.stringify(monster.savingThrows) : ""
     }' placeholder='Saving Throws'>
     <label for='monsterSkills'>Skills:</label>
-    <input id='monsterSkills' type='text' class='form-control mb-2' value='${
-      monster.skills ? JSON.stringify(monster.skills) : ""
+    <input id='monsterSkills' type='text' class='form-control mb-2' value='${monster.skills ? JSON.stringify(monster.skills) : ""
     }' placeholder='Skills'>
     <label for='monsterDamageResistances'>Damage Resistances:</label>
-    <input id='monsterDamageResistances' type='text' class='form-control mb-2' value='${
-      monster.damageResistances || ""
+    <input id='monsterDamageResistances' type='text' class='form-control mb-2' value='${monster.damageResistances || ""
     }' placeholder='Damage Resistances'>
     <label for='monsterDamageImmunities'>Damage Immunities:</label>
-    <input id='monsterDamageImmunities' type='text' class='form-control mb-2' value='${
-      monster.damageImmunities || ""
+    <input id='monsterDamageImmunities' type='text' class='form-control mb-2' value='${monster.damageImmunities || ""
     }' placeholder='Damage Immunities'>
     <label for='monsterDamageVulnerabilities'>Damage Vulnerabilities:</label>
-    <input id='monsterDamageVulnerabilities' type='text' class='form-control mb-2' value='${
-      monster.damageVulnerabilities || ""
+    <input id='monsterDamageVulnerabilities' type='text' class='form-control mb-2' value='${monster.damageVulnerabilities || ""
     }' placeholder='Damage Vulnerabilities'>
     <label for='monsterConditionImmunities'>Condition Immunities:</label>
-    <input id='monsterConditionImmunities' type='text' class='form-control mb-2' value='${
-      monster.conditionImmunities || ""
+    <input id='monsterConditionImmunities' type='text' class='form-control mb-2' value='${monster.conditionImmunities || ""
     }' placeholder='Condition Immunities'>
     <label for='monsterSenses'>Senses:</label>
-    <input id='monsterSenses' type='text' class='form-control mb-2' value='${
-      monster.senses || ""
+    <input id='monsterSenses' type='text' class='form-control mb-2' value='${monster.senses || ""
     }' placeholder='Senses'>
     <label for='monsterPassivePerception'>Passive Perception:</label>
-    <input id='monsterPassivePerception' type='text' class='form-control mb-2' value='${
-      monster.passivePerception || ""
+    <input id='monsterPassivePerception' type='text' class='form-control mb-2' value='${monster.passivePerception || ""
     }' placeholder='Passive Perception'>
     <label for='monsterLanguages'>Languages:</label>
-    <input id='monsterLanguages' type='text' class='form-control mb-2' value='${
-      monster.languages || ""
+    <input id='monsterLanguages' type='text' class='form-control mb-2' value='${monster.languages || ""
     }' placeholder='Languages'>
     <label for='monsterActions'>Actions:</label>
     <p>
-    ${
-      monster.actions?.length
-        ? monster.actions
-            .map(
-              (action) =>
-                `<div class="mb-2"><strong>${action.name}:</strong> ${action.description}</div>`
-            )
-            .join("")
-        : "<em>No actions available.</em>"
+    ${monster.actions?.length
+      ? monster.actions
+        .map(
+          (action) =>
+            `<div class="mb-2"><strong>${action.name}:</strong> ${action.description}</div>`
+        )
+        .join("")
+      : "<em>No actions available.</em>"
     }
     </p>
-    <input id='monsterActions' type='text' class='form-control mb-2' value='${
-      JSON.stringify(monster.actions) || ""
+    <input id='monsterActions' type='text' class='form-control mb-2' value='${JSON.stringify(monster.actions) || ""
     }' placeholder='Actions'>
     <label for='monsterAbilities'>Abilities:</label>
     <p>
-    ${
-      monster.abilities?.length
-        ? monster.abilities
-            .map(
-              (ability) =>
-                `<div class="mb-2"><strong>${ability.name}:</strong> ${ability.description}</div>`
-            )
-            .join("")
-        : "<em>No abilities available.</em>"
+    ${monster.abilities?.length
+      ? monster.abilities
+        .map(
+          (ability) =>
+            `<div class="mb-2"><strong>${ability.name}:</strong> ${ability.description}</div>`
+        )
+        .join("")
+      : "<em>No abilities available.</em>"
     }
   </p>
-    <input id='monsterAbilities' type='text' class='form-control mb-2' value='${
-      JSON.stringify(monster.abilities) || ""
+    <input id='monsterAbilities' type='text' class='form-control mb-2' value='${JSON.stringify(monster.abilities) || ""
     }' placeholder='Abilities'>
-    <input id='monsterImg' type='text' class='form-control mb-2' value='${
-      monster.img || ""
+    <input id='monsterImg' type='text' class='form-control mb-2' value='${monster.img || ""
     }' placeholder="Image URL">
     <button class="btn btn-primary mt-3" id="editMonsterBtn">Edit Monster</button>
   `;
@@ -485,13 +484,12 @@ document.getElementById("deleteAllBtn").addEventListener("click", async () => {
   if (!confirm(`Are you sure you want to delete the whole encounter`)) {
     return;
   }
-  const allMonsters = await fetch("http://127.0.0.1:3000/api/encounter/").then(
-    (response) => response.json()
-  );
-  for (const monster of allMonsters) {
-    await fetch(`http://127.0.0.1:3000/api/encounter/${monster.encounterId}`, {
-      method: "DELETE",
-    });
+  const response = await fetch("http://127.0.0.1:3000/api/encounter/", {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    console.error("Error deleting encounter:", await response.text());
+    return;
   }
   window.location.reload();
 });

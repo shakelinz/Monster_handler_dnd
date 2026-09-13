@@ -1,4 +1,5 @@
-const localPath = "./data/encounters/encounter0.json";
+const path = require("path");
+const localPath = path.join(__dirname, "../data/encounters/encounter0.json");
 const DL = require("../DLs/jsonFileDl.js");
 
 const getAllMonsters = async () => {
@@ -57,10 +58,16 @@ const deleteMonster = async (encounterId) => {
   return "monster deleted successfully";
 };
 
+const deleteAllMonsters = async () => {
+  await DL.saveData(localPath, []);
+  return "encounter deleted successfully";
+};
+
 module.exports = {
   getAllMonsters,
   getMonsterById,
   saveNewMonster,
   updateMonster,
   deleteMonster,
+  deleteAllMonsters,
 };
